@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>護理待辦清單</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            min-width: 700px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 30px;
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+        .bed-overview {
+            width: 260px;
+            min-width: 260px;
+            max-width: 260px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.06);
+            height: fit-content;
+            flex-shrink: 0;
+            transition: width 0.3s, min-width 0.3s, max-width 0.3s, opacity 0.3s, padding 0.3s;
+            opacity: 1;
+            position: relative;
+        }
+        .bed-overview.collapsed {
+            width: 0;
+            min-width: 0;
+            max-width: 0;
+            opacity: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        .bed-overview h2 {
+            font-size: 20px;
+            color: #2980b9;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+        #bedButtons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .bed-btn {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            height: 38px;
+            background: #eaf6fb;
+            color: #2980b9;
+            border: 1.5px solid #b2d7ee;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: none;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            word-break: keep-all;
+            outline: none;
+            box-shadow: none;
+        }
+        .bed-btn.selected {
+            background: #3498db !important;
+            color: #fff !important;
+            border: 1.5px solid #2980b9;
+        }
+        .bed-btn:hover {
+            background: #b2d7ee !important;
+            color: #2980b9 !important;
+        }
+        .bed-btn:focus, .bed-btn:active {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .input-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #34495e;
+            font-weight: bold;
+        }
+        select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .todo-list {
+            margin-top: 30px;
+        }
+        .todo-item {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        .todo-item h3 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .todo-item p {
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        .todo-item .handover-type {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .buttons {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0;
+            margin-top: 20px;
+            overflow-x: auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .clear-btn {
+            background-color: #e74c3c;
+            margin-left: 10px;
+        }
+        .clear-btn:hover {
+            background-color: #c0392b;
+        }
+        #mainContent {
+            flex: 1;
+            transition: all 0.3s;
+            position: relative;
+        }
+        #collapseBtn, #expandBtn {
+            position: fixed;
+            left: 0;
+            top: 80px;
+            z-index: 1000;
+            background: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 0 6px 6px 0;
+            padding: 8px 16px;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.08);
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+        }
+        .container.bed-collapsed #expandBtn {
+            display: block;
+        }
+        #bedInputsContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .bed-input-group {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 4px 4px 2px 4px;
+            min-width: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .bed-input-group label {
+            color: #2980b9;
+            font-weight: bold;
+            font-size: 15px;
+            margin-right: 8px;
+            min-width: 48px;
+            max-width: 48px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            white-space: nowrap;
+            border-radius: 4px;
+            background: #eaf6fb;
+        }
+        .bed-input-group textarea {
+            flex: 1;
+            min-width: 0;
+            margin: 0;
+            height: 30px;
+            font-size: 13px;
+            resize: none;
+            padding: 4px 6px;
+        }
+        .handoverContentInput:focus {
+            border-color: orange !important;
+            border-width: 2px;
+            outline: none;
+        }
+        #handoverTagsBar {
+            margin-bottom: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .tags-header {
+            display: flex;
+            align-items: stretch;
+            gap: 12px;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            flex-wrap: wrap;
+        }
+        .tags-input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 0;
+            flex-shrink: 1;
+            min-width: 0;
+        }
+        .tags-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .tag-btn {
+            font-family: inherit;
+            font-size: 16px;
+            line-height: 1.2;
+            font-weight: bold;
+            height: 38px;
+            min-width: 72px;
+            padding: 0 12px;
+            border: none;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            box-sizing: border-box;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        #addTagBtn.tag-btn {
+            background: #27ae60;
+            color: #fff;
+        }
+        #toggleTagEditBtn.tag-btn {
+            background: #27ae60;
+            color: #fff;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        #toggleTagEditBtn.tag-btn.edit-mode {
+            background: #e74c3c;
+        }
+        #newTagInput {
+            font-family: inherit;
+            font-size: 16px;
+            line-height: 1.2;
+            height: 38px;
+            box-sizing: border-box;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            min-width: 180px;
+            max-width: 300px;
+            width: 220px;
+            padding: 0 8px;
+            margin: 0;
+            flex-shrink: 1;
+        }
+        .main-btn {
+            font-family: inherit;
+            font-size: 16px;
+            line-height: 1.2;
+            font-weight: bold;
+            height: 44px;
+            min-width: 90px;
+            padding: 0 24px;
+            border: none;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            box-sizing: border-box;
+            white-space: nowrap;
+            margin-right: 18px;
+            flex-shrink: 1;
+        }
+        .main-btn:last-child {
+            margin-right: 0;
+        }
+        .btn-save {
+            background: #3498db;
+            color: #fff;
+        }
+        .btn-ok {
+            background: #ff9800 !important;
+            color: #fff !important;
+        }
+        .btn-excel {
+            background: #16a085;
+            color: #fff;
+        }
+        .btn-excel:hover, .btn-excel:active {
+            background: #1abc9c !important;
+            color: #fff !important;
+        }
+        .btn-clear {
+            background: #e74c3c;
+            color: #fff;
+        }
+        .btn-clear:hover, .btn-clear:active {
+            background: #ff5252 !important;
+            color: #fff !important;
+        }
+        .main-btn:disabled {
+            background: #b2bec3;
+            color: #fff;
+            cursor: not-allowed;
+        }
+        .tag-btn-tag:hover {
+            background: #b2d7ee !important;
+            color: #2980b9 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 床號選擇區塊 -->
+        <div class="bed-overview" id="bedOverview">
+            <button id="collapseBtn" style="position:absolute;left:260px;top:30px;z-index:2;background:#3498db;color:#fff;border:none;border-radius:0 6px 6px 0;padding:4px 10px;cursor:pointer;">&lt;</button>
+            <h2>選擇床號</h2>
+            <div id="bedButtons">
+                <!-- 床號按鈕動態生成 -->
+            </div>
+        </div>
+        <button id="expandBtn" style="display:none;position:fixed;left:0;top:80px;z-index:1000;background:#3498db;color:#fff;border:none;border-radius:0 6px 6px 0;padding:8px 16px;cursor:pointer;box-shadow:2px 2px 8px rgba(0,0,0,0.08);">&gt;</button>
+        <!-- 右側內容區塊 -->
+        <div style="flex: 1; position: relative;" id="mainContent">
+            <h1>交班待辦清單</h1>
+            <div id="handoverTagsBar">
+                <div class="tags-header">
+                    <div class="tags-input-group" style="display: none;">
+                        <input id="newTagInput" type="text" placeholder="新增標籤" maxlength="10" style="min-width:180px;max-width:300px;width:220px;">
+                        <button id="addTagBtn" class="tag-btn">新增</button>
+                    </div>
+                    <button id="toggleTagEditBtn" class="tag-btn" onclick="toggleTagEditMode()">編輯標籤</button>
+                </div>
+                <div class="tags-list"></div>
+            </div>
+            <div id="bedInputsContainer"></div>
+            <div class="buttons">
+                <button id="addBtn" class="main-btn btn-save" onclick="saveHandover()" disabled>存檔</button>
+                <button id="exportExcelBtn" class="main-btn btn-excel">匯出 Excel</button>
+                <button class="main-btn btn-clear" onclick="clearAll()">清空內容項目</button>
+            </div>
+            <div class="todo-list" id="todoList">
+                <!-- 交班事項將在這裡動態顯示 -->
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        // 生成床號按鈕
+        const bedButtonsDiv = document.getElementById('bedButtons');
+        let selectedBeds = JSON.parse(localStorage.getItem('selectedBeds') || '[]');
+        // 初始化預設床號名稱
+        const defaultBedNamesList = [
+            "16-1","16-2","17-1","17-2","18-1","18-2","19-1","19-2","20-1","20-2",
+            "21-1","21-2","22-1","22-2","23-1","23-2","12-1","12-2","12-3","12-5",
+            "13-1","13-2","13-3","13-5","15-1","15-2","15-3","15-5","25","26","27",
+            "28","29","30","31","32","33","35-1","35-2","36-1","36-2","36-3","36-5",
+            "37-1","37-2"
+        ];
+        function getDefaultBedNames() {
+            const obj = {};
+            for (let i = 1; i <= 45; i++) obj[i] = defaultBedNamesList[i-1] || i.toString();
+            return obj;
+        }
+        let bedNames = JSON.parse(localStorage.getItem('bedNames') || 'null');
+        if (!bedNames) {
+            bedNames = getDefaultBedNames();
+            localStorage.setItem('bedNames', JSON.stringify(bedNames));
+        }
+        // 讀取自訂交班種類
+        let handoverTags = JSON.parse(localStorage.getItem('handoverTags') || 'null') || [
+            '生命徵象', '用藥', '治療', '飲食', '活動', '其他'
+        ];
+        let handoverContents = {};
+        for (let i = 1; i <= 45; i++) {
+            const btn = document.createElement('button');
+            btn.textContent = bedNames[i] ? bedNames[i] : i;
+            btn.className = 'bed-btn';
+            if (selectedBeds.includes(i)) btn.classList.add('selected');
+            btn.onclick = function() {
+                if (selectedBeds.includes(i)) {
+                    selectedBeds = selectedBeds.filter(bed => bed !== i);
+                    btn.classList.remove('selected');
+                } else {
+                    selectedBeds.push(i);
+                    btn.classList.add('selected');
+                }
+                localStorage.setItem('selectedBeds', JSON.stringify(selectedBeds));
+                localStorage.setItem('handoverData', JSON.stringify({selectedBeds, handoverContents}));
+                renderBedInputs();
+                updateInputState();
+            };
+            bedButtonsDiv.appendChild(btn);
+        }
+        function updateInputState() {
+            const enable = selectedBeds.length > 0;
+            document.getElementById('addBtn').disabled = !enable;
+        }
+        // 產生交班種類標籤按鈕
+        const handoverTagsBar = document.getElementById('handoverTagsBar');
+        let currentFocusTextarea = null;
+        let lastFocusBed = null;
+        let isFocusLocked = false;  // 新增：用於追蹤是否鎖定焦點
+        let isTagEditMode = false;  // 新增：標籤編輯模式狀態
+
+        // 確保在頁面載入時初始化標籤區域
+        document.addEventListener('DOMContentLoaded', function() {
+            renderHandoverTagsBar();
+            // 綁定編輯按鈕點擊事件
+            document.getElementById('toggleTagEditBtn').onclick = toggleTagEditMode;
+            // 匯出 Excel 功能
+            var exportExcelBtn = document.getElementById('exportExcelBtn');
+            if (exportExcelBtn) {
+                exportExcelBtn.onclick = exportToExcel;
+            }
+        });
+
+        function toggleTagEditMode() {
+            isTagEditMode = !isTagEditMode;
+            const editBtn = document.getElementById('toggleTagEditBtn');
+            const tagsInputGroup = document.querySelector('.tags-input-group');
+            
+            editBtn.textContent = isTagEditMode ? '完成編輯' : '編輯標籤';
+            if (isTagEditMode) {
+                editBtn.classList.add('edit-mode');
+                tagsInputGroup.style.display = 'flex';
+            } else {
+                editBtn.classList.remove('edit-mode');
+                tagsInputGroup.style.display = 'none';
+            }
+            
+            renderHandoverTagsBar();
+        }
+
+        function renderHandoverTagsBar() {
+            const tagsBar = document.getElementById('handoverTagsBar');
+            const tagsHeader = tagsBar.querySelector('.tags-header');
+            const tagsInputGroup = tagsHeader.querySelector('.tags-input-group');
+            const tagsList = tagsBar.querySelector('.tags-list');
+            
+            // 更新編輯按鈕
+            const editBtn = document.getElementById('toggleTagEditBtn');
+            editBtn.textContent = isTagEditMode ? '完成編輯' : '編輯標籤';
+            if (isTagEditMode) {
+                editBtn.classList.add('edit-mode');
+                tagsInputGroup.style.display = 'flex';
+            } else {
+                editBtn.classList.remove('edit-mode');
+                tagsInputGroup.style.display = 'none';
+            }
+
+            // 清空並重新渲染標籤列表
+            tagsList.innerHTML = '';
+            handoverTags.forEach((tag, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'tag-btn-tag';
+                btn.style = 'background:#eaf6fb;color:#2980b9;border-radius:16px;padding:6px 18px;font-size:15px;border:none;cursor:pointer;position:relative;display:flex;align-items:center;gap:6px;';
+                btn.onclick = function(e) {
+                    if (isTagEditMode && e.target.classList.contains('delete-tag')) {
+                        return;
+                    }
+                    if (!isTagEditMode && currentFocusTextarea) {
+                        insertAtCursor(currentFocusTextarea, tag);
+                        currentFocusTextarea.focus();
+                        const len = currentFocusTextarea.value.length;
+                        currentFocusTextarea.setSelectionRange(len, len);
+                    }
+                };
+
+                const tagText = document.createElement('span');
+                tagText.textContent = tag;
+                tagText.style = 'flex:1;';
+                btn.appendChild(tagText);
+
+                if (isTagEditMode) {
+                    const del = document.createElement('span');
+                    del.textContent = '×';
+                    del.className = 'delete-tag';
+                    del.style = 'color:#e74c3c;font-size:16px;cursor:pointer;padding:0 4px;';
+                    del.onclick = function(e) {
+                        e.stopPropagation();
+                        handoverTags.splice(idx, 1);
+                        saveHandoverTags();
+                        renderHandoverTagsBar();
+                    };
+                    btn.appendChild(del);
+                }
+                
+                tagsList.appendChild(btn);
+            });
+        }
+
+        // 新增標籤的處理邏輯
+        document.getElementById('addTagBtn').onclick = function() {
+            const input = document.getElementById('newTagInput');
+            const val = input.value.trim();
+            if (val && !handoverTags.includes(val)) {
+                handoverTags.push(val);
+                saveHandoverTags();
+                renderHandoverTagsBar();
+                input.value = '';
+            }
+        };
+
+        // 按 Enter 也能新增
+        document.getElementById('newTagInput').onkeydown = function(e) {
+            if (e.key === 'Enter') document.getElementById('addTagBtn').click();
+        };
+
+        // 插入文字到游標處（自動加分號區隔）
+        function insertAtCursor(textarea, text) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const value = textarea.value;
+            let insertText = text;
+            // 如果游標前不是開頭且不是頓號，前面加頓號
+            if (start > 0 && value[start - 1] !== '、') insertText = '、' + insertText;
+            // 如果游標後不是頓號，後面加頓號
+            if (end === value.length || value[end] !== '、') insertText = insertText + '、';
+            textarea.value = value.substring(0, start) + insertText + value.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
+        }
+        // 動態產生多組交班內容欄位（無下拉選單）
+        function renderBedInputs() {
+            const container = document.getElementById('bedInputsContainer');
+            container.innerHTML = '';
+            selectedBeds.sort((a,b)=>a-b).forEach(bed => {
+                const group = document.createElement('div');
+                group.className = 'bed-input-group';
+                group.innerHTML = `
+                    <label>${bedNames[bed] ? bedNames[bed] : bed}</label>
+                    <textarea class="handoverContentInput" data-bed="${bed}" placeholder="請輸入交班內容..." required>${handoverContents[bed] ? handoverContents[bed] : ''}</textarea>
+                `;
+                container.appendChild(group);
+            });
+            // 綁定 focus 事件
+            container.querySelectorAll('.handoverContentInput').forEach(textarea => {
+                textarea.onfocus = function() {
+                    currentFocusTextarea = textarea;
+                    lastFocusBed = textarea.getAttribute('data-bed');
+                    isFocusLocked = true;  // 獲得焦點時鎖定
+                };
+                textarea.onblur = function(e) {
+                    // 檢查是否點擊了標籤按鈕
+                    const relatedTarget = e.relatedTarget;
+                    if (relatedTarget && relatedTarget.closest('#handoverTagsBar')) {
+                        // 如果點擊的是標籤按鈕，保持焦點鎖定
+                        setTimeout(() => {
+                            textarea.focus();
+                        }, 0);
+                    } else {
+                        // 如果點擊其他地方，解除焦點鎖定
+                        setTimeout(() => {
+                            if (!isFocusLocked) {
+                                currentFocusTextarea = null;
+                            }
+                        }, 200);
+                    }
+                };
+                textarea.oninput = function() {
+                    const bed = textarea.getAttribute('data-bed');
+                    handoverContents[bed] = textarea.value;
+                    localStorage.setItem('handoverData', JSON.stringify({selectedBeds, handoverContents}));
+                };
+            });
+
+            // 點擊標籤區域外時解除焦點鎖定
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('#handoverTagsBar') && !e.target.closest('.handoverContentInput')) {
+                    isFocusLocked = false;
+                    if (!document.activeElement.classList.contains('handoverContentInput')) {
+                        currentFocusTextarea = null;
+                    }
+                }
+            });
+
+            // 渲染後自動 focus 回剛剛的床號
+            if (lastFocusBed) {
+                const ta = container.querySelector(`.handoverContentInput[data-bed='${lastFocusBed}']`);
+                if (ta) {
+                    ta.focus();
+                    currentFocusTextarea = ta;
+                    isFocusLocked = true;
+                }
+            }
+        }
+        // 儲存交班內容到 localStorage
+        function saveHandover() {
+            selectedBeds.sort((a,b)=>a-b).forEach(bed => {
+                const textarea = document.querySelector(`.handoverContentInput[data-bed='${bed}']`);
+                let content = textarea.value.trim();
+                if (!content) {
+                    content = 'Ｘ';
+                    textarea.value = content;
+                }
+                handoverContents[bed] = content;
+            });
+            localStorage.setItem('handoverData', JSON.stringify({selectedBeds, handoverContents}));
+            // 按鈕動畫顯示 OK！
+            var btn = document.getElementById('addBtn');
+            var oldText = btn.textContent;
+            btn.textContent = 'OK！';
+            btn.classList.add('btn-ok');
+            btn.disabled = true;
+            setTimeout(function() {
+                btn.textContent = oldText;
+                btn.classList.remove('btn-ok');
+                btn.disabled = false;
+            }, 3000);
+        }
+        // 清空所有事項
+        function clearAll() {
+            if (confirm('確定要清空所有交班內容嗎？')) {
+                Object.keys(handoverContents).forEach(bed => {
+                    handoverContents[bed] = '';
+                    const textarea = document.querySelector(`.handoverContentInput[data-bed='${bed}']`);
+                    if (textarea) textarea.value = '';
+                });
+                localStorage.setItem('handoverData', JSON.stringify({selectedBeds, handoverContents}));
+            }
+        }
+        // 頁面載入時就渲染一次（即使沒選床號）
+        renderBedInputs();
+        // 頁面載入時自動高亮已選床號
+        Array.from(bedButtonsDiv.children).forEach((btn, idx) => {
+            if (selectedBeds.includes(idx + 1)) btn.classList.add('selected');
+        });
+        // 收合/展開床號概覽功能（動畫）
+        const bedOverview = document.getElementById('bedOverview');
+        const collapseBtn = document.getElementById('collapseBtn');
+        const expandBtn = document.getElementById('expandBtn');
+        collapseBtn.onclick = function() {
+            bedOverview.classList.add('collapsed');
+            collapseBtn.style.display = 'none';
+            expandBtn.style.display = 'block';
+        };
+        expandBtn.onclick = function() {
+            bedOverview.classList.remove('collapsed');
+            collapseBtn.style.display = 'block';
+            expandBtn.style.display = 'none';
+        };
+        // 存檔到 localStorage
+        function saveHandoverTags() {
+            localStorage.setItem('handoverTags', JSON.stringify(handoverTags));
+        }
+        // 頁面載入時自動還原交班內容
+        const handoverData = JSON.parse(localStorage.getItem('handoverData') || 'null');
+        if (handoverData && handoverData.selectedBeds) {
+            selectedBeds = handoverData.selectedBeds;
+            handoverContents = handoverData.handoverContents || {};
+            setTimeout(() => {
+                renderBedInputs();
+                // 高亮床號
+                Array.from(bedButtonsDiv.children).forEach((btn, idx) => {
+                    if (selectedBeds.includes(idx + 1)) btn.classList.add('selected');
+                    else btn.classList.remove('selected');
+                });
+                updateInputState();
+            }, 0);
+        }
+        function exportToExcel() {
+            if (!window.XLSX) {
+                alert('Excel 匯出功能載入失敗，請檢查網路或稍後再試。');
+                return;
+            }
+            // 準備資料
+            const data = [['床號', '交班內容']];
+            selectedBeds.sort((a,b)=>a-b).forEach(bed => {
+                const bedName = bedNames[bed] ? bedNames[bed] : bed;
+                const content = handoverContents[bed] ? handoverContents[bed] : 'Ｘ';
+                data.push([bedName, content]);
+            });
+            // 產生工作表與活頁簿
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '交班內容');
+            // 產生日期字串
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const filename = `${yyyy}${mm}${dd}_護理待辦清單.xlsx`;
+            // 下載
+            XLSX.writeFile(wb, filename);
+        }
+    </script>
+</body>
+</html>
