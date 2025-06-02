@@ -188,6 +188,7 @@
             flex: 1;
             transition: all 0.3s;
             position: relative;
+            padding-bottom: 110px; /* 預留底部標籤列空間 */
         }
         #collapseBtn, #expandBtn {
             position: fixed;
@@ -256,20 +257,50 @@
             outline: none;
         }
         #handoverTagsBar {
-            margin-bottom: 18px;
+            position: fixed;
+            left: 0;
+            bottom: 16px;
+            width: 100%;
+            z-index: 1001;
+            background: transparent;
+            box-shadow: none;
+            align-items: center;
+            pointer-events: none;
+        }
+        .handover-tags-bar-inner {
+            width: 100%;
+            max-width: 1200px;
+            min-width: 700px;
+            margin: 0 auto;
+            background: #fff;
+            box-shadow: 0 4px 24px rgba(44,62,80,0.10);
+            border-radius: 0 0 10px 10px;
+            padding: 10px 32px;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 10px;
+            pointer-events: auto;
+            align-items: center;
+            flex-wrap: wrap;
         }
         .tags-header {
             display: flex;
-            align-items: stretch;
-            gap: 12px;
-            margin-bottom: 10px;
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
             flex-wrap: wrap;
+        }
+        .tags-list {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            max-width: 100%;
+            scrollbar-width: thin;
         }
         .tags-input-group {
             display: flex;
@@ -277,11 +308,18 @@
             margin-bottom: 0;
             flex-shrink: 1;
             min-width: 0;
+            max-width: 0;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transform: translateX(-30px);
+            transition: max-width 0.4s cubic-bezier(.4,1.4,.6,1), max-height 0.4s cubic-bezier(.4,1.4,.6,1), opacity 0.3s, transform 0.4s cubic-bezier(.4,1.4,.6,1);
         }
-        .tags-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+        .tags-input-group.show {
+            max-width: 400px;
+            max-height: 60px;
+            opacity: 1;
+            transform: translateX(0);
         }
         .tag-btn {
             font-family: inherit;
@@ -386,6 +424,48 @@
             background: #b2d7ee !important;
             color: #2980b9 !important;
         }
+        .tag-btn-tag .delete-tag {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            text-align: center;
+            vertical-align: middle;
+            margin-left: 4px;
+            font-size: 16px;
+            line-height: 18px;
+            transition: opacity 0.2s;
+        }
+        .tag-btn-tag .delete-tag {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .tag-btn-tag.edit-mode .delete-tag {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .tag-btn-tag {
+            height: 38px;
+            line-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        .tag-btn-tag span {
+            display: block;
+            white-space: nowrap;
+        }
+        .delete-tag {
+            color: #e74c3c;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 4px;
+            margin-left: 4px;
+            display: flex;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -448,7 +528,7 @@
         }
         // 讀取自訂交班種類
         let handoverTags = JSON.parse(localStorage.getItem('handoverTags') || 'null') || [
-            '生命徵象', '用藥', '治療', '飲食', '活動', '其他'
+            'Ｘ光', '晨血', 'MBD', '手術', '檢查', '到期更換', 'Care', '藥物到量：'
         ];
         let handoverContents = {};
         for (let i = 1; i <= 45; i++) {
@@ -502,10 +582,10 @@
             editBtn.textContent = isTagEditMode ? '完成編輯' : '編輯標籤';
             if (isTagEditMode) {
                 editBtn.classList.add('edit-mode');
-                tagsInputGroup.style.display = 'flex';
+                tagsInputGroup.classList.add('show');
             } else {
                 editBtn.classList.remove('edit-mode');
-                tagsInputGroup.style.display = 'none';
+                tagsInputGroup.classList.remove('show');
             }
             
             renderHandoverTagsBar();
@@ -513,30 +593,58 @@
 
         function renderHandoverTagsBar() {
             const tagsBar = document.getElementById('handoverTagsBar');
-            const tagsHeader = tagsBar.querySelector('.tags-header');
-            const tagsInputGroup = tagsHeader.querySelector('.tags-input-group');
-            const tagsList = tagsBar.querySelector('.tags-list');
-            
-            // 更新編輯按鈕
-            const editBtn = document.getElementById('toggleTagEditBtn');
-            editBtn.textContent = isTagEditMode ? '完成編輯' : '編輯標籤';
+            tagsBar.innerHTML = '';
+            const inner = document.createElement('div');
+            inner.className = 'handover-tags-bar-inner';
+            const tagsHeader = document.createElement('div');
+            tagsHeader.className = 'tags-header';
+            const tagsInputGroup = document.createElement('div');
+            tagsInputGroup.className = 'tags-input-group';
             if (isTagEditMode) {
-                editBtn.classList.add('edit-mode');
-                tagsInputGroup.style.display = 'flex';
+                tagsInputGroup.classList.add('show');
             } else {
-                editBtn.classList.remove('edit-mode');
-                tagsInputGroup.style.display = 'none';
+                tagsInputGroup.classList.remove('show');
             }
-
-            // 清空並重新渲染標籤列表
-            tagsList.innerHTML = '';
+            const input = document.createElement('input');
+            input.id = 'newTagInput';
+            input.type = 'text';
+            input.placeholder = '新增標籤';
+            input.maxLength = 10;
+            input.style = 'min-width:180px;max-width:300px;width:220px;';
+            const addBtn = document.createElement('button');
+            addBtn.id = 'addTagBtn';
+            addBtn.className = 'tag-btn';
+            addBtn.textContent = '新增';
+            addBtn.onclick = function() {
+                const val = input.value.trim();
+                if (val && !handoverTags.includes(val)) {
+                    handoverTags.push(val);
+                    saveHandoverTags();
+                    renderHandoverTagsBar();
+                    input.value = '';
+                }
+            };
+            tagsInputGroup.appendChild(input);
+            tagsInputGroup.appendChild(addBtn);
+            tagsHeader.appendChild(tagsInputGroup);
+            const editBtn = document.createElement('button');
+            editBtn.id = 'toggleTagEditBtn';
+            editBtn.className = 'tag-btn';
+            editBtn.textContent = isTagEditMode ? '完成編輯' : '編輯標籤';
+            if (isTagEditMode) editBtn.classList.add('edit-mode');
+            editBtn.onclick = toggleTagEditMode;
+            tagsHeader.appendChild(editBtn);
+            inner.appendChild(tagsHeader);
+            const tagsList = document.createElement('div');
+            tagsList.className = 'tags-list';
             handoverTags.forEach((tag, idx) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'tag-btn-tag';
                 btn.style = 'background:#eaf6fb;color:#2980b9;border-radius:16px;padding:6px 18px;font-size:15px;border:none;cursor:pointer;position:relative;display:flex;align-items:center;gap:6px;';
+                if (isTagEditMode) btn.classList.add('edit-mode');
                 btn.onclick = function(e) {
-                    if (isTagEditMode && e.target.classList.contains('delete-tag')) {
+                    if (e.target.classList.contains('delete-tag')) {
                         return;
                     }
                     if (!isTagEditMode && currentFocusTextarea) {
@@ -546,17 +654,14 @@
                         currentFocusTextarea.setSelectionRange(len, len);
                     }
                 };
-
                 const tagText = document.createElement('span');
                 tagText.textContent = tag;
                 tagText.style = 'flex:1;';
                 btn.appendChild(tagText);
-
                 if (isTagEditMode) {
                     const del = document.createElement('span');
                     del.textContent = '×';
                     del.className = 'delete-tag';
-                    del.style = 'color:#e74c3c;font-size:16px;cursor:pointer;padding:0 4px;';
                     del.onclick = function(e) {
                         e.stopPropagation();
                         handoverTags.splice(idx, 1);
@@ -565,27 +670,11 @@
                     };
                     btn.appendChild(del);
                 }
-                
                 tagsList.appendChild(btn);
             });
+            inner.appendChild(tagsList);
+            tagsBar.appendChild(inner);
         }
-
-        // 新增標籤的處理邏輯
-        document.getElementById('addTagBtn').onclick = function() {
-            const input = document.getElementById('newTagInput');
-            const val = input.value.trim();
-            if (val && !handoverTags.includes(val)) {
-                handoverTags.push(val);
-                saveHandoverTags();
-                renderHandoverTagsBar();
-                input.value = '';
-            }
-        };
-
-        // 按 Enter 也能新增
-        document.getElementById('newTagInput').onkeydown = function(e) {
-            if (e.key === 'Enter') document.getElementById('addTagBtn').click();
-        };
 
         // 插入文字到游標處（自動加分號區隔）
         function insertAtCursor(textarea, text) {
